@@ -6,3 +6,5 @@ __pycache__
 podcasts
 cache.json
 secrets.toml
+feeds.toml
+.pypodcast-cache.json
