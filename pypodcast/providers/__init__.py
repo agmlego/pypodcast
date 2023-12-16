@@ -160,6 +160,61 @@ class Nightvale(Provider):
     def pub_date(self):
         return arrow.get(self.entry.published_parsed)
     
+    @property
+    def episode_url(self) -> str:
+        for link in self.entry.links:
+            if link.rel == 'alternate':
+                return link.href
+        return None
+
+    @property
+    def season(self) -> str:
+        return None
+    
+    @property
+    def guests(self) -> str | list[str]:
+        return [a.name for a in self.entry.authors]
+    
+    @property
+    def hosts(self) -> str | list[str]:
+        g = []
+        for line in self.summary.split('\n'):
+            if 'Narrated' in line:
+                g.append(line.split(' by ')[-1])
+            
+            if 'Weather' in line:
+                g.append(line.split(': ')[-1])
+
+        return g
+    
+    @property
+    def editors(self) -> str | list[str]:
+        for line in self.summary.split('\n'):
+            if 'Written' in line:
+                return line.split(' by ')[-1]
+
+        return None
+    
+    @property
+    def directors(self) -> str | list[str]:
+        for line in self.summary.split('\n'):
+            if 'Music' in line:
+                return line.split(': ')[-1]
+
+        return None
+    
+    @property
+    def producers(self) -> str | list[str]:
+        for line in self.summary.split('\n'):
+            if 'Logo' in line:
+                return line.split(': ')[-1]
+
+        return None
+    
+    @property
+    def publisher(self) -> str:
+        return self.feed.publisher
+    
     
 
 
