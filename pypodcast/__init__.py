@@ -192,7 +192,7 @@ def _(tags: mutagen.mp3.MP3, provider):
     if pubdate := provider.pub_date:
         assert isinstance(pubdate, arrow.Arrow)
         tags['TDOR:'] = mutagen.id3.TDOR(text=pubdate.to('utc').isoformat())
-        tags['TDRC:'] = mutagen.id3.TDRC(text=pubdate.to('utc').year)
+        tags['TDRC:'] = mutagen.id3.TDRC(text=str(pubdate.to('utc').year))
     if epid := provider.episode_id:
         tags['TGID:'] = mutagen.id3.TGID(text=epid)
 
