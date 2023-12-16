@@ -150,8 +150,10 @@ def _(tags: mutagen.mp3.MP3, provider):
             data=art
         )
     if epnum := provider.episode_number:
+        tags.tags.delall('TRCK')
         tags['TRCK:'] = mutagen.id3.TRCK(text=str(epnum))
     if epurl := provider.episode_url:
+        tags.tags.delall('WOAR')
         tags['WOAR:'] = mutagen.id3.WOAR(url=str(epurl))
     if title := provider.episode_title:
         tags.tags.delall('TIT2')
@@ -197,8 +199,10 @@ def _(tags: mutagen.mp3.MP3, provider):
         )
         tags['TDES:'] = mutagen.id3.TDES(text=summary)
     if album := provider.album:
+        tags.tags.delall('TALB')
         tags['TALB:'] = mutagen.id3.TALB(text=album)
     if season := provider.season:
+        tags.tags.delall('TPOS')
         tags['TPOS:'] = mutagen.id3.TPOS(text=season)
     if cat := provider.category:
         tags.tags.delall('TCAT')
@@ -211,9 +215,12 @@ def _(tags: mutagen.mp3.MP3, provider):
         tags.tags.delall('TCON')
         tags['TCON:'] = mutagen.id3.TCON(text='Podcast')
     if cr := provider.copyright:
+        tags.tags.delall('TCOP')
         tags['TCOP:'] = mutagen.id3.TCOP(text=cr)
     if pubdate := provider.pub_date:
         assert isinstance(pubdate, arrow.Arrow)
+        tags.tags.delall('TDOR')
+        tags.tags.delall('TDRC')
         tags['TDOR:'] = mutagen.id3.TDOR(text=pubdate.to('utc').isoformat())
         tags['TDRC:'] = mutagen.id3.TDRC(text=str(pubdate.to('utc').year))
     if epid := provider.episode_id:
