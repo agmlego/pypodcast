@@ -1,6 +1,7 @@
 import contextlib
 import functools
 import json
+import hashlib
 import os
 import pathlib
 
@@ -25,7 +26,7 @@ def get_data_dir() -> pathlib.Path:
 def get_cache_dir() -> pathlib.Path:
     dir = get_data_dir() / CACHEDIR
     dir.mkdir(parents=True, exist_ok=True)
-    return True
+    return dir
 
 @contextlib.contextmanager
 def open_feedfile(*, create: bool = True):
@@ -51,5 +52,12 @@ def open_feedfile(*, create: bool = True):
 
 @contextlib.contextmanager
 def open_cache(ident):
-    # FIXME: Implement this
-    yield {}
+    filename = get_cache_dir() / hashlib.shake_128(ident.encode('utf-8')).hexdigest(32)
+    try:
+        doc = json.loads(filename.read_text())
+    except FileNotFoundError:
+        doc = {}
+
+    yield doc
+
+    filename.write_text(json.dumps(doc))

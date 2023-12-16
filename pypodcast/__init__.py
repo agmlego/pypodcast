@@ -61,7 +61,8 @@ def process_entry(
     feed: feedparser.FeedParserDict,
     entry: feedparser.FeedParserDict,
 ):
-    with open_cache(entry.id) as cache:
+    cache_key = f"{feed.href}#{entry.id}"
+    with open_cache(cache_key) as cache:
         if cache:
             # We've processed this entry. Just exit.
             return
@@ -110,6 +111,8 @@ def process_entry(
             log.info(f'-> {dest}')
             audiobuf.seek(0)
             dest.write_bytes(audiobuf.read())
+
+            cache['processed'] = 'yes'
 
 
 def _get_ext(mimes: list[str]) -> str:
