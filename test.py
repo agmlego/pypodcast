@@ -1,0 +1,2 @@
+import pypodcast
+pypodcast.main()
