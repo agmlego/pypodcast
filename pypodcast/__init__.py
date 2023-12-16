@@ -116,7 +116,10 @@ def dl_blob(url) -> bytes:
     print(f"dl_blob {url=}")
     resp = requests.get(url)
     resp.raise_for_status()
-    return resp.content
+
+    # guard against extended MIME types
+    assert ';' not in resp.headers['Content-Type']
+    return resp.content, resp.headers['Content-Type']
 
 
 @functools.singledispatch
@@ -131,11 +134,10 @@ def _(tags: mutagen.mp3.MP3, provider):
         print(f"fix_tags {art=}")
         if isinstance(art, str):
             # URL, download it
-            art = dl_blob(art)
-
+            art, mimetype = dl_blob(art)
         tags['APIC:'] = mutagen.id3.APIC(
             encoding=0,
-            mime='image/jpeg',  # FIXME: Actually pull this from somewhere
+            mime=mimetype,
             type=3, desc=u'Track',
             data=art
         )
