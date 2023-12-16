@@ -65,7 +65,7 @@ def process_entry(
         if cache:
             # We've processed this entry. Just exit.
             return
-        log.info(entry.title)
+        log.info(f"{feed.feed.title}: {entry.title}")
         # 1. Figure out where the godsdamned audio is
         urls = {
             (bit.type, bit.href)
@@ -229,7 +229,10 @@ def _(tags: mutagen.mp3.MP3, provider):
 
 
 def main():
-    rich.traceback.install(show_locals=True)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        futs = list(process_feeds(pool))
-        concurrent.futures.wait(futs)
+    try:
+        rich.traceback.install(show_locals=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            futs = list(process_feeds(pool))
+            concurrent.futures.wait(futs)
+    except KeyboardInterrupt:
+        pass
