@@ -61,11 +61,12 @@ def process_entry(
     feed: feedparser.FeedParserDict,
     entry: feedparser.FeedParserDict,
 ):
-    with open_cache(entry.id) as cache:
+    cache_key = f"{feed.href}#{entry.id}"
+    with open_cache(cache_key) as cache:
         if cache:
             # We've processed this entry. Just exit.
             return
-        log.info(entry.title)
+        log.info(f"{feed.feed.title}: {entry.title}")
         # 1. Figure out where the godsdamned audio is
         urls = {
             (bit.type, bit.href)
@@ -102,13 +103,16 @@ def process_entry(
             audiobuf.seek(0)
             audiometa.save(fileobj=audiobuf)
 
-            dest = sanitize_filepath(get_data_dir() /
-                                     (gentle_format(config['filepattern'],
-                                                    metadata_provider) + _get_ext(audiometa.mime)), platform='Windows')
+            dest = get_data_dir() / sanitize_filepath(
+                gentle_format(config['filepattern'],metadata_provider)
+                + _get_ext(audiometa.mime)
+            )
             dest.parent.mkdir(parents=True, exist_ok=True)
             log.info(f'-> {dest}')
             audiobuf.seek(0)
             dest.write_bytes(audiobuf.read())
+
+            cache['processed'] = 'yes'
 
 
 def _get_ext(mimes: list[str]) -> str:
@@ -228,7 +232,10 @@ def _(tags: mutagen.mp3.MP3, provider):
 
 
 def main():
-    rich.traceback.install(show_locals=True)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        futs = list(process_feeds(pool))
-        concurrent.futures.wait(futs)
+    try:
+        rich.traceback.install(show_locals=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            futs = list(process_feeds(pool))
+            concurrent.futures.wait(futs)
+    except KeyboardInterrupt:
+        pass
