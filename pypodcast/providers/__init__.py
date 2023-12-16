@@ -34,6 +34,10 @@ class Provider:
     @property
     def episode_id(self) -> str:
         raise NotImplementedError
+    
+    @property
+    def episode_url(self) -> str:
+        raise NotImplementedError
 
     @property
     def episode_art(self) -> str | bytes:
@@ -60,6 +64,10 @@ class Provider:
         raise NotImplementedError
 
     @property
+    def season(self) -> str:
+        raise NotImplementedError
+
+    @property
     def category(self) -> str | list[str]:
         raise NotImplementedError
 
@@ -69,6 +77,30 @@ class Provider:
 
     @property
     def pub_date(self) -> arrow.Arrow:
+        raise NotImplementedError
+    
+    @property
+    def hosts(self) -> str | list[str]:
+        raise NotImplementedError
+    
+    @property
+    def guests(self) -> str | list[str]:
+        raise NotImplementedError
+    
+    @property
+    def editors(self) -> str | list[str]:
+        raise NotImplementedError
+    
+    @property
+    def directors(self) -> str | list[str]:
+        raise NotImplementedError
+    
+    @property
+    def producers(self) -> str | list[str]:
+        raise NotImplementedError
+    
+    @property
+    def publisher(self) -> str:
         raise NotImplementedError
     
     

@@ -4,7 +4,6 @@ import functools
 import itertools
 import mimetypes
 import tempfile
-import traceback
 
 import arrow
 import feedparser
@@ -93,11 +92,13 @@ def process_entry(
             audiobuf.seek(0)
             audiometa.save(fileobj=audiobuf)
 
-            dest = get_data_dir() / (gentle_format(config['filepattern'], metadata_provider) + _get_ext(audiometa.mime))
+            dest = get_data_dir() / \
+                (gentle_format(config['filepattern'],
+                 metadata_provider) + _get_ext(audiometa.mime))
             dest.parent.mkdir(parents=True, exist_ok=True)
+            print(f'-> {dest}')
             audiobuf.seek(0)
             dest.write_bytes(audiobuf.read())
-
 
 
 def _get_ext(mimes: list[str]) -> str:
@@ -105,8 +106,7 @@ def _get_ext(mimes: list[str]) -> str:
         ext = mimetypes.guess_extension(mime)
         if ext:
             return ext
-    else:
-        raise ValueError("No extension found for any of {mimes!r}")
+    raise ValueError("No extension found for any of {mimes!r}")
 
 
 def dl_blob(url) -> bytes:
@@ -141,10 +141,34 @@ def _(tags: mutagen.mp3.MP3, provider):
         )
     if epnum := provider.episode_number:
         tags['TRCK:'] = mutagen.id3.TRCK(text=str(epnum))
+    if epurl := provider.episode_url:
+        tags['WOAR:'] = mutagen.id3.WOAR(url=str(epurl))
     if title := provider.episode_title:
         tags['TIT2:'] = mutagen.id3.TIT2(text=title)
     if sub := provider.episode_subtitle:
         tags['TIT3:'] = mutagen.id3.TIT3(text=sub)
+    if hosts := provider.hosts:
+        if isinstance(hosts, list):
+            hosts = ', '.join(hosts)
+        tags['TPE1:'] = mutagen.id3.TPE1(text=hosts)
+    if guests := provider.guests:
+        if isinstance(guests, list):
+            guests = ', '.join(guests)
+        tags['TPE2:'] = mutagen.id3.TPE2(text=guests)
+    if directors := provider.directors:
+        if isinstance(directors, list):
+            directors = ', '.join(directors)
+        tags['TPE3:'] = mutagen.id3.TPE3(text=directors)
+    if editors := provider.editors:
+        if isinstance(editors, list):
+            editors = ', '.join(editors)
+        tags['TPE4:'] = mutagen.id3.TPE4(text=editors)
+    if producers := provider.producers:
+        if isinstance(producers, list):
+            producers = ', '.join(producers)
+        tags['TPRO:'] = mutagen.id3.TPRO(text=producers)
+    if publisher := provider.publisher:
+        tags['TPUB:'] = mutagen.id3.TPUB(text=publisher)
     if summary := provider.summary:
         tags['COMM:'] = mutagen.id3.COMM(
             lang='eng',
@@ -154,6 +178,8 @@ def _(tags: mutagen.mp3.MP3, provider):
         tags['TDES:'] = mutagen.id3.TDES(text=summary)
     if album := provider.album:
         tags['TALB:'] = mutagen.id3.TALB(text=album)
+    if season := provider.season:
+        tags['TPOS:'] = mutagen.id3.TPOS(text=season)
     if cat := provider.category:
         if isinstance(cat, list):
             cat = ', '.join(cat)
@@ -163,9 +189,10 @@ def _(tags: mutagen.mp3.MP3, provider):
         tags['TCON:'] = mutagen.id3.TCON(text='Podcast')
     if cr := provider.copyright:
         tags['TCOP:'] = mutagen.id3.TCOP(text=cr)
-    if pub := provider.pub_date:
-        assert isinstance(pub, arrow.Arrow)
-        tags['TDOR:'] = mutagen.id3.TDOR(text=pub.to('utc').isoformat())
+    if pubdate := provider.pub_date:
+        assert isinstance(pubdate, arrow.Arrow)
+        tags['TDOR:'] = mutagen.id3.TDOR(text=pubdate.to('utc').isoformat())
+        tags['TDRC:'] = mutagen.id3.TDRC(text=pubdate.to('utc').year)
     if epid := provider.episode_id:
         tags['TGID:'] = mutagen.id3.TGID(text=epid)
 
