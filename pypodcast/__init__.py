@@ -2,6 +2,7 @@ from collections.abc import Mapping
 import concurrent.futures
 import functools
 import itertools
+import logging
 import mimetypes
 import tempfile
 
@@ -10,12 +11,22 @@ import feedparser
 import mutagen
 import mutagen.mp3
 import mutagen.id3
+from pathvalidate import sanitize_filename, sanitize_filepath
 import requests
 import rich.console
+from rich.logging import RichHandler
 import rich.traceback
 
 from .config import open_feedfile, open_cache, get_data_dir
 from .junk_drawer import import_string, gentle_format
+
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+)
+
+log = logging.getLogger("pypodcast")
 
 
 def catch_errors(func):
@@ -35,14 +46,13 @@ def process_feeds(pool: concurrent.futures.Executor):
     """
     with open_feedfile() as feedfile:
         for feedconfig in feedfile['feed']:
-            print(f"{feedconfig=}")
+            log.debug(f"{feedconfig=}")
             feed = feedparser.parse(feedconfig['url'])
             # TODO: Update feedfile based on HTTP status
 
             for entry in feed.entries:
                 process_entry(feedconfig, feed, entry)
-                return []
-                # yield pool.submit(process_entry, feedconfig, feed, entry)
+                yield pool.submit(process_entry, feedconfig, feed, entry)
 
 
 @catch_errors
@@ -55,7 +65,7 @@ def process_entry(
         if cache:
             # We've processed this entry. Just exit.
             return
-        print(entry.title)
+        log.info(entry.title)
         # 1. Figure out where the godsdamned audio is
         urls = {
             (bit.type, bit.href)
@@ -92,11 +102,11 @@ def process_entry(
             audiobuf.seek(0)
             audiometa.save(fileobj=audiobuf)
 
-            dest = get_data_dir() / \
-                (gentle_format(config['filepattern'],
-                 metadata_provider) + _get_ext(audiometa.mime))
+            dest = sanitize_filepath(get_data_dir() /
+                                     (gentle_format(config['filepattern'],
+                                                    metadata_provider) + _get_ext(audiometa.mime)), platform='Windows')
             dest.parent.mkdir(parents=True, exist_ok=True)
-            print(f'-> {dest}')
+            log.info(f'-> {dest}')
             audiobuf.seek(0)
             dest.write_bytes(audiobuf.read())
 
@@ -113,7 +123,6 @@ def dl_blob(url) -> bytes:
     """
     Gets the binary data of a URL
     """
-    print(f"dl_blob {url=}")
     resp = requests.get(url)
     resp.raise_for_status()
 
@@ -131,14 +140,13 @@ def fix_tags(tags, feed, entry):
 def _(tags: mutagen.mp3.MP3, provider):
     tags['PCST:'] = mutagen.id3.PCST(1)
     if art := provider.episode_art:
-        print(f"fix_tags {art=}")
         if isinstance(art, str):
             # URL, download it
             art, mimetype = dl_blob(art)
         tags['APIC:'] = mutagen.id3.APIC(
             encoding=0,
             mime=mimetype,
-            type=3, desc=u'Track',
+            type=3, desc='Track',
             data=art
         )
     if epnum := provider.episode_number:
@@ -146,32 +154,42 @@ def _(tags: mutagen.mp3.MP3, provider):
     if epurl := provider.episode_url:
         tags['WOAR:'] = mutagen.id3.WOAR(url=str(epurl))
     if title := provider.episode_title:
+        tags.tags.delall('TIT2')
         tags['TIT2:'] = mutagen.id3.TIT2(text=title)
     if sub := provider.episode_subtitle:
+        tags.tags.delall('TIT3')
         tags['TIT3:'] = mutagen.id3.TIT3(text=sub)
     if hosts := provider.hosts:
+        tags.tags.delall('TPE1')
         if isinstance(hosts, list):
             hosts = ', '.join(hosts)
         tags['TPE1:'] = mutagen.id3.TPE1(text=hosts)
     if guests := provider.guests:
+        tags.tags.delall('TPE2')
         if isinstance(guests, list):
             guests = ', '.join(guests)
         tags['TPE2:'] = mutagen.id3.TPE2(text=guests)
     if directors := provider.directors:
+        tags.tags.delall('TPE3')
         if isinstance(directors, list):
             directors = ', '.join(directors)
         tags['TPE3:'] = mutagen.id3.TPE3(text=directors)
     if editors := provider.editors:
+        tags.tags.delall('TPE4')
         if isinstance(editors, list):
             editors = ', '.join(editors)
         tags['TPE4:'] = mutagen.id3.TPE4(text=editors)
     if producers := provider.producers:
+        tags.tags.delall('TPRO')
         if isinstance(producers, list):
             producers = ', '.join(producers)
         tags['TPRO:'] = mutagen.id3.TPRO(text=producers)
     if publisher := provider.publisher:
+        tags.tags.delall('TPUB')
         tags['TPUB:'] = mutagen.id3.TPUB(text=publisher)
     if summary := provider.summary:
+        tags.tags.delall('COMM')
+        tags.tags.delall('TDES')
         tags['COMM:'] = mutagen.id3.COMM(
             lang='eng',
             desc=u'Summary',
@@ -183,11 +201,14 @@ def _(tags: mutagen.mp3.MP3, provider):
     if season := provider.season:
         tags['TPOS:'] = mutagen.id3.TPOS(text=season)
     if cat := provider.category:
+        tags.tags.delall('TCAT')
+        tags.tags.delall('TCON')
         if isinstance(cat, list):
             cat = ', '.join(cat)
         tags['TCAT:'] = mutagen.id3.TCAT(text=cat)
         tags['TCON:'] = mutagen.id3.TCON(text=cat + ', Podcast')
     else:
+        tags.tags.delall('TCON')
         tags['TCON:'] = mutagen.id3.TCON(text='Podcast')
     if cr := provider.copyright:
         tags['TCOP:'] = mutagen.id3.TCOP(text=cr)
