@@ -4,6 +4,7 @@ __pycache__
 *.egg-info
 
 podcasts
+feeds
 cache.json
 secrets.toml
 feeds.toml

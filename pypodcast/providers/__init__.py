@@ -142,9 +142,46 @@ class Nightvale(Provider):
     @property
     def album(self):
         # FIXME: Sort this out better (ANGRY KEYSMASH)
-        num, _ = self._num_title()
-        if num:
+        num, title = self._num_title()
+        title = title.lower()
+        if num or 'new to night vale' in title:
             return "Welcome to Night Vale"
+        elif 'behind the scenes' in title:
+            return "Welcome to Night Vale: Behind the Scenes"
+        elif 'excerpt' in title or 'excerpt' in self.summary.lower():
+            return "Welcome to Night Vale: Excerpts"
+        elif 'bonus' in title:
+            return "Welcome to Night Vale: Bonus Episodes"
+        elif 'announcement' in title or 'news' in title or 'a message from' in title:
+            return "Welcome to Night Vale: News"
+        elif 'adventures in new america' in title:
+            return "Adventures in New America"
+        elif 'dreamboy' in title:
+            return "Dreamboy"
+        elif 'unlicensed' in title:
+            return "Unlicensed"
+        elif 'within the wires' in title:
+            return "Within the Wires"
+        elif 'the orbiting human circus' in title:
+            return "The Orbiting Human Circus"
+        elif 'conversations with people who hate me' in title:
+            return "Conversations with People Who Hate Me"
+        elif 'good morning night vale' in title:
+            return "Good Morning Night Vale"
+        elif 'pounded in the butt' in title:
+            return "Pounded in the Butt"
+        elif 'start with this' in title:
+            return "Start With This"
+        elif 'the first ten years' in title:
+            return "The First Ten Years"
+        elif 'the summer of night vale presents' in title:
+            return "The Summer of Night Vale Presents"
+        elif 'i only listen to the mountain goats' in title:
+            return "I Only Listen to the Mountain Goats"
+        elif 'it makes a sound' in title:
+            return "It Makes A Sound"
+        elif 'alice isn\'t dead' in title:
+            return "Alice Isn't Dead"
         else:
             return ""
 
