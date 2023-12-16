@@ -113,6 +113,8 @@ class Nightvale(Provider):
     
     @property
     def episode_art(self):
+        if 'image' not in self.entry:
+            return self.feed.image.href
         return self.entry.image.href
 
     @property
