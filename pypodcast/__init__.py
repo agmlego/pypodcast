@@ -102,9 +102,10 @@ def process_entry(
             audiobuf.seek(0)
             audiometa.save(fileobj=audiobuf)
 
-            dest = sanitize_filepath(get_data_dir() /
-                                     (gentle_format(config['filepattern'],
-                                                    metadata_provider) + _get_ext(audiometa.mime)), platform='Windows')
+            dest = get_data_dir() / sanitize_filepath(
+                gentle_format(config['filepattern'],metadata_provider)
+                + _get_ext(audiometa.mime)
+            )
             dest.parent.mkdir(parents=True, exist_ok=True)
             log.info(f'-> {dest}')
             audiobuf.seek(0)
